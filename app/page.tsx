@@ -16,11 +16,11 @@ import React, { useEffect, useState } from "react"
 import { createPublicClient, http, parseAbi, encodeFunctionData } from "viem"
 import { sepolia } from "viem/chains"
 
-// @dev add your BUNDLER_URL, PAYMASTER_URL, and PASSKEY_SERVER_URL here
-const BUNDLER_URL = ""
-const PAYMASTER_URL = ""
-const PASSKEY_SERVER_URL = ""
 const CHAIN = sepolia
+// @dev add your ZERODEV_PROJECT_ID, ZERODEV_RPC_URL and PASSKEY_SERVER_URL here
+const ZERODEV_PROJECT_ID = ""
+const PASSKEY_SERVER_URL = `https://passkeys.zerodev.app/api/v3/${ZERODEV_PROJECT_ID}`
+const ZERODEV_RPC_URL = `https://rpc.zerodev.app/api/v3/${ZERODEV_PROJECT_ID}/chain/${CHAIN.id}`
 const entryPoint = getEntryPoint("0.7")
 
 const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
@@ -30,7 +30,7 @@ const contractABI = parseAbi([
 ])
 
 const publicClient = createPublicClient({
-    transport: http(BUNDLER_URL),
+    transport: http(),
     chain: CHAIN
 })
 
@@ -62,13 +62,13 @@ export default function Home() {
         kernelClient = createKernelAccountClient({
             account: kernelAccount,
             chain: CHAIN,
-            bundlerTransport: http(BUNDLER_URL),
+            bundlerTransport: http(ZERODEV_RPC_URL),
             paymaster: {
                 getPaymasterData: async (userOperation) => {
                     const zeroDevPaymaster = await createZeroDevPaymasterClient(
                         {
                             chain: CHAIN,
-                            transport: http(PAYMASTER_URL),
+                            transport: http(ZERODEV_RPC_URL),
                         }
                     )
                     return zeroDevPaymaster.sponsorUserOperation({
