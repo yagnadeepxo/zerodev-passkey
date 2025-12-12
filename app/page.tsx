@@ -97,7 +97,7 @@ export default function Home() {
             webAuthnKey,
             entryPoint,
             kernelVersion: KERNEL_V3_1,
-            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
+            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_3_PATCHED
         })
 
         await createAccountAndClient(passkeyValidator)
@@ -120,7 +120,7 @@ export default function Home() {
             webAuthnKey,
             entryPoint,
             kernelVersion: KERNEL_V3_1,
-            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
+            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_3_PATCHED
         })
 
         await createAccountAndClient(passkeyValidator)
