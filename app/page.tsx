@@ -4,7 +4,7 @@ import {
     PasskeyValidatorContractVersion,
     WebAuthnMode,
     toPasskeyValidator,
-    toWebAuthnKey
+    toWebAuthnKey,
 } from "@zerodev/passkey-validator"
 import { getEntryPoint, KERNEL_V3_1 } from "@zerodev/sdk/constants"
 import React, { useEffect, useState } from "react"
@@ -35,7 +35,7 @@ export default function Home() {
             passkeyName: username,
             passkeyServerUrl: PASSKEY_SERVER_URL,
             mode: WebAuthnMode.Register,
-            passkeyServerHeaders: {}
+            passkeyServerHeaders: {},
         })
 
         setIsRegistering(false)
@@ -56,9 +56,64 @@ export default function Home() {
         window.alert("Login done.")
     }
 
+    // Expose functions to window for console access
     useEffect(() => {
         setMounted(true)
     }, [])
+
+    useEffect(() => {
+        // Expose register function - accepts optional username parameter
+        (window as any).register = async (passkeyName?: string) => {
+            const nameToUse = passkeyName || username || "default"
+            setIsRegistering(true)
+            
+            try {
+                const webAuthnKey = await toWebAuthnKey({
+                    passkeyName: nameToUse,
+                    passkeyServerUrl: PASSKEY_SERVER_URL,
+                    mode: WebAuthnMode.Register,
+                    passkeyServerHeaders: {},
+                })
+                
+                setIsRegistering(false)
+                console.log("Register done. WebAuthnKey:", webAuthnKey)
+                return webAuthnKey
+            } catch (error) {
+                setIsRegistering(false)
+                console.error("Registration error:", error)
+                throw error
+            }
+        }
+        
+        // Expose login function - accepts optional username parameter
+        (window as any).login = async (passkeyName?: string) => {
+            const nameToUse = passkeyName || username || ""
+            setIsLoggingIn(true)
+            
+            try {
+                const webAuthnKey = await toWebAuthnKey({
+                    passkeyName: nameToUse,
+                    passkeyServerUrl: PASSKEY_SERVER_URL,
+                    mode: WebAuthnMode.Login,
+                    passkeyServerHeaders: {}
+                })
+                
+                setIsLoggingIn(false)
+                console.log("Login done. WebAuthnKey:", webAuthnKey)
+                return webAuthnKey
+            } catch (error) {
+                setIsLoggingIn(false)
+                console.error("Login error:", error)
+                throw error
+            }
+        }
+        
+        // Cleanup on unmount
+        return () => {
+            delete (window as any).register
+            delete (window as any).login
+        }
+    }, [username])
 
     if (!mounted) return <></>
 
