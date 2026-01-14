@@ -1,11 +1,6 @@
 "use client"
 
 import {
-    createKernelAccount,
-    createKernelAccountClient,
-    createZeroDevPaymasterClient
-} from "@zerodev/sdk"
-import {
     PasskeyValidatorContractVersion,
     WebAuthnMode,
     toPasskeyValidator,
@@ -13,74 +8,24 @@ import {
 } from "@zerodev/passkey-validator"
 import { getEntryPoint, KERNEL_V3_1 } from "@zerodev/sdk/constants"
 import React, { useEffect, useState } from "react"
-import { createPublicClient, http, parseAbi, encodeFunctionData } from "viem"
+import { createPublicClient, http } from "viem"
 import { sepolia } from "viem/chains"
 
 const CHAIN = sepolia
-// @dev add your ZERODEV_PROJECT_ID, ZERODEV_RPC_URL and PASSKEY_SERVER_URL here
-const ZERODEV_PROJECT_ID = ""
-const PASSKEY_SERVER_URL = `https://passkeys.zerodev.app/api/v3/${ZERODEV_PROJECT_ID}`
-const ZERODEV_RPC_URL = `https://rpc.zerodev.app/api/v3/${ZERODEV_PROJECT_ID}/chain/${CHAIN.id}`
-const entryPoint = getEntryPoint("0.7")
 
-const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
-const contractABI = parseAbi([
-    "function mint(address _to) public",
-    "function balanceOf(address owner) external view returns (uint256 balance)"
-])
+const PASSKEY_SERVER_URL = `https://passkeys.zerodev.app/api/v3/ea9b4025-6363-407a-af07-ab095545dcf4`
+//const entryPoint = getEntryPoint("0.7")
 
 const publicClient = createPublicClient({
     transport: http(),
     chain: CHAIN
 })
 
-let kernelAccount: any
-let kernelClient: any
-
 export default function Home() {
     const [mounted, setMounted] = useState(false)
     const [username, setUsername] = useState("")
-    const [accountAddress, setAccountAddress] = useState("")
-    const [isKernelClientReady, setIsKernelClientReady] = useState(false)
     const [isRegistering, setIsRegistering] = useState(false)
     const [isLoggingIn, setIsLoggingIn] = useState(false)
-    const [isSendingUserOp, setIsSendingUserOp] = useState(false)
-    const [userOpHash, setUserOpHash] = useState("")
-    const [userOpStatus, setUserOpStatus] = useState("")
-
-    const createAccountAndClient = async (passkeyValidator: any) => {
-        kernelAccount = await createKernelAccount(publicClient, {
-            entryPoint,
-            plugins: {
-                sudo: passkeyValidator
-            },
-            kernelVersion: KERNEL_V3_1
-        })
-
-        console.log("Kernel account created: ", kernelAccount.address)
-
-        kernelClient = createKernelAccountClient({
-            account: kernelAccount,
-            chain: CHAIN,
-            bundlerTransport: http(ZERODEV_RPC_URL),
-            paymaster: {
-                getPaymasterData: async (userOperation) => {
-                    const zeroDevPaymaster = await createZeroDevPaymasterClient(
-                        {
-                            chain: CHAIN,
-                            transport: http(ZERODEV_RPC_URL),
-                        }
-                    )
-                    return zeroDevPaymaster.sponsorUserOperation({
-                        userOperation,
-                    })
-                }
-            }
-        })
-
-        setIsKernelClientReady(true)
-        setAccountAddress(kernelAccount.address)
-    }
 
     // Function to be called when "Register" is clicked
     const handleRegister = async () => {
@@ -93,17 +38,8 @@ export default function Home() {
             passkeyServerHeaders: {}
         })
 
-        const passkeyValidator = await toPasskeyValidator(publicClient, {
-            webAuthnKey,
-            entryPoint,
-            kernelVersion: KERNEL_V3_1,
-            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_3_PATCHED
-        })
-
-        await createAccountAndClient(passkeyValidator)
-
         setIsRegistering(false)
-        window.alert("Register done.  Try sending UserOps.")
+        window.alert("Register done.")
     }
 
     const handleLogin = async () => {
@@ -116,49 +52,8 @@ export default function Home() {
             passkeyServerHeaders: {}
         })
 
-        const passkeyValidator = await toPasskeyValidator(publicClient, {
-            webAuthnKey,
-            entryPoint,
-            kernelVersion: KERNEL_V3_1,
-            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_3_PATCHED
-        })
-
-        await createAccountAndClient(passkeyValidator)
-
         setIsLoggingIn(false)
-        window.alert("Login done.  Try sending UserOps.")
-    }
-
-    // Function to be called when "Login" is clicked
-    const handleSendUserOp = async () => {
-        setIsSendingUserOp(true)
-        setUserOpStatus("Sending UserOp...")
-
-        const userOpHash = await kernelClient.sendUserOperation({
-            callData: await kernelAccount.encodeCalls([
-                {
-                    to: contractAddress,
-                    value: BigInt(0),
-                    data: encodeFunctionData({
-                        abi: contractABI,
-                        functionName: "mint",
-                        args: [kernelAccount.address]
-                    })
-                }
-            ])
-        })
-
-        setUserOpHash(userOpHash)
-
-        await kernelClient.waitForUserOperationReceipt({
-            hash: userOpHash
-        })
-
-        // Update the message based on the count of UserOps
-        const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=mumbai" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
-
-        setUserOpStatus(userOpMessage)
-        setIsSendingUserOp(false)
+        window.alert("Login done.")
     }
 
     useEffect(() => {
@@ -199,22 +94,6 @@ export default function Home() {
                 </h1>
 
                 <div className="space-y-4">
-                    {/* Account Address Label */}
-                    {accountAddress && (
-                        <div className="text-center mb-4">
-                            Account address:{" "}
-                            <a
-                                href={`https://jiffyscan.xyz/account/${accountAddress}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-blue-500 hover:text-blue-700"
-                            >
-                                {" "}
-                                {accountAddress}{" "}
-                            </a>
-                        </div>
-                    )}
-
                     {/* Input Box */}
                     <input
                         type="text"
@@ -243,30 +122,6 @@ export default function Home() {
                         >
                             {isLoggingIn ? <Spinner /> : "Login"}
                         </button>
-                    </div>
-
-                    {/* Send UserOp Button */}
-                    <div className="flex flex-col items-center w-full">
-                        <button
-                            onClick={handleSendUserOp}
-                            disabled={!isKernelClientReady || isSendingUserOp}
-                            className={`px-4 py-2 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 flex justify-center items-center w-full ${
-                                isKernelClientReady && !isSendingUserOp
-                                    ? "bg-green-500 hover:bg-green-700 focus:ring-green-500"
-                                    : "bg-gray-500"
-                            }`}
-                        >
-                            {isSendingUserOp ? <Spinner /> : "Send UserOp"}
-                        </button>
-                        {/* UserOp Status Label */}
-                        {userOpHash && (
-                            <div
-                                className="mt-4"
-                                dangerouslySetInnerHTML={{
-                                    __html: userOpStatus
-                                }}
-                            />
-                        )}
                     </div>
                 </div>
             </div>
